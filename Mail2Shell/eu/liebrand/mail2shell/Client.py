@@ -213,6 +213,7 @@ class Mail2Shell:
                     returnMail=re.findall(p, ts)[0]
                     break
             if not(found):
+                #print emailFrom
                 continue
             
             self.log.debug("Received email from %s" % (returnMail))
@@ -252,21 +253,21 @@ class Mail2Shell:
                                     if decMsg.signature_id is None:
                                         print "Message is not signed"
                                         if config.verifySignature:
-                                                print "ERROR: email is not signed (missing)"
+                                                self.log.error( "email is not signed (missing)")
                                                 hasErr=True
                                                 errMessage = "Missing signature"
                                         else:
                                             print "Message is not signed"
                                     else:
                                         if fingerprints[returnMail.upper()]==decMsg.fingerprint:
-                                            print "Message is correctly signed by " + returnMail
+                                            self.log.debug("Message is signed by " + returnMail)
                                         else:
                                             if config.verifySignature:
-                                                print "ERROR: email is not signed by trusted sender (fingerprint not matching)"
+                                                self.log.error( "ERROR: email is not signed by trusted sender (fingerprint not matching)")
                                                 hasErr=True
                                                 errMessage = "Wrong signature"
                                             else:
-                                                print "WARN: email is not signed by trusted sender"
+                                                self.log.warn( "email is not signed by trusted sender")
                                     #print decMsg
                                     #TODO check error message
                                     email_message = email.message_from_string(decMsg.data)
