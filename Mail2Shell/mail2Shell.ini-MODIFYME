@@ -1,0 +1,11 @@
+[mail2Shell]
+mailServer=
+username=
+password=
+magicKey=
+trustedSender=
+smtpServer=ß
+
+
+enableGPG=True
+keys=./keys
