@@ -188,7 +188,7 @@ class Mail2Shell:
 
         for x in range(i):
             latest_email_uid = data[0].split()[x]
-            print latest_email_uid
+            #print latest_email_uid
             result, email_data = mail.uid('fetch', latest_email_uid, '(RFC822)')
             # result, email_data = conn.store(num,'-FLAGS','\\Seen') 
             # this might work to set flag to seen, if it doesn't already
@@ -226,10 +226,15 @@ class Mail2Shell:
             done=False
             while not(done) and not(hasErr):
                 for part in email_message.walk():
-                    print part.get_content_type()
+                    #print part.get_content_type()
                     if part.get_content_type() == "multipart/encrypted":
                         if not(returnMail.upper() in fingerprints):
                             errMessage = "Encrypted mail cannot be processed as key information is missing for %s" % (returnMail)
+                            self.log.error(errMessage)
+                            hasErr=True
+                            break
+                        if not(config.userName.upper() in fingerprints):
+                            errMessage = "Encrypted mail cannot be processed as key information is missing for %s" % (config.userName)
                             self.log.error(errMessage)
                             hasErr=True
                             break
