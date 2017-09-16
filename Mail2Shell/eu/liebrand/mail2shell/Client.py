@@ -44,10 +44,10 @@ class Config:
               "msgFormat" : "%(asctime)s, %(levelname)s, %(module)s, %(lineno)d, %(message)s",
               "path2Shell" : "/bin/sh",
               "keepRunning" : 0,
-              "enableGPG" : "True",
+              "enableGPG" : "False",
               "keys": "./keys",
               "allowOnlyGPG" : "False",
-              "verifySignature" : "True",
+              "verifySignature" : "False",
               "gpgBinary" : "/usr/local/bin/gpg"
               }
 
