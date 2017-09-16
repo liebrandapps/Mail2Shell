@@ -1,0 +1,81 @@
+Mail2Shell by Mark Liebrand 2017
+
+
+Note: there is another software with this name from more than 5 years ago. It can be found in the archives of code.google.com:
+
+https://code.google.com/archive/p/mail2shell/downloads
+
+The above mentioned software is archived and seems to be no longer maintained. This software is not an enhancement of the previous mail2Shell, it is a
+complete new development.
+
+
+
+Installation
+ 
+apt-get install gnupg
+ 
+pip install python-gnupg
+ 
+ 
+You also need a Python (2.7) installation.
+ 
+Get the mail2Shell Software and unpack in a installation directory. Set the PYTHONPATH to '.' and create a mail2Shell.ini with your settings from the template (mail2Shell.ini-MODIFYME). If you decide for GPG, you need to create, configure and populate the keys directory. Maybe it is a good start to run initially without GPG in order to get a working installation.
+ 
+By default you find a log file at /tmp/mail2Shell.log
+ 
+Start the app from the command line to see any err messages due to misconfiguration (+ check the log file)
+ 
+CRON Setup
+ 
+If several hosts share one mail account it may be advisable to not have them access the mail account simultaneously to avoid blocking by the mail server. A possible script to run is:
+ 
+#!/bin/sh
+cd /root/dev/Mail2Shell
+export PYTHONPATH=.
+python eu/liebrand/mail2shell/Client.py
+ 
+ 
+ 
+ 
+ 
+ 
+Special Tags for Mail
+ 
+ 
++GET <filenames>
+ 
+Attach a file to the response mail. The filename need to include the path. If not, the file will be search in the directory the app was started from. Multiple files can be specified with a single +GET. Wildcards are not supported.
+ 
++PUT <filenames>
+ 
+The file to be stored must be attached to the mail with the name excluding the path. The filename parameter has to include the path. The specified path will be used to determine the directory where the file will be stored.
+ 
+Example
+File is attached as sample.txt. To store this file in /tmp:
++PUT /tmp/sample.txt
+ 
+You can store multiple attached files by listing them as paramters to a single +PUT.
+ 
++TO <float value>
+Increase the timeout for next command to specified float value. By default, the shell processor gives each command a second. Any output produced during this one second is captured and send back in the response mail. Sometime commands may take longer. For example, requesting the last 100 lines of a file (tail -100 some.log). By specifying a larger timeout value, it should be possible to get this output back. The value specified is only value for the next command. 
+ 
+++ - stop shell commands, ignore remaining part of the mail
+ 
+This command is useful  you please reply for the next command. You can issue the next command by just replying to response mail. In your reply, you end the sequence of commands by ++. The content of the original mail below is the ignored by mail2Shell.
+ 
+ 
+Configuration File
+ 
+The config file should be called mail2Shell.ini (case sensitive...) and should be placed at the root of the installation directory. It needs to contain a section [mail2Shell] for the keys and values.
+ 
+mailServer: host name of the mail server. Needed to retrieve incoming mails with shell commands
+smtpServer: host name of  smtp server. Needed to send a response
+userName: user for logging into the both servers configured above. It is silently assumed that this user is identical on both servers
+password: password for userName
+magicKey: String to be contained in the subject of the incoming mail. A mail to be processed must contain this string in the subject.
+trustedSender: list of email addresses accepted by mail2Shell. Separate addresses by a ';'.
+ 
+enableGPG: (True / False) enable the GPG functionality. If set to true, the keys directory needs to be setup with at least one public key (for trustedSender...) and one private key (for userName).
+keys: directory where public and private keys can be found (armored ascii format)
+allowOnlyGPG: (True / False) If set to true, only encrypted messages are accepted.
+verifySignature: (True/ False): The incoming encrypted message must be signed with the key of the sender. The key must match the key configured for this trusted sender. 
