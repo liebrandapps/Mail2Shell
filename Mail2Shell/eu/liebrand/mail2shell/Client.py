@@ -125,7 +125,9 @@ class Mail2Shell:
             print "[MS21005] Daemon was not able to initialize logging system. Reason: %s" % e
             sys.exit()
 
-    
+    def retMessage(self, msg, output):
+        output[0]+=msg + '\n'
+        output[1]+=msg + '<BR>'
     
     def retrieveMail(self):
         config=Config("./mail2Shell.ini")
@@ -284,6 +286,7 @@ class Mail2Shell:
                 lines = body.split('\n')
                 retDataPlain=""
                 retDataHtml="<br>"
+                nextTo=1.0
                 process=subprocess.Popen(config.path2Shell, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                 for l in lines:
                     l=l.strip()
@@ -317,12 +320,24 @@ class Mail2Shell:
                                 else:
                                     retDataPlain+="## Attachment not found " + fl + "\n"
                                     retDataHtml+="## Attachment not found " + fl + "<br>"
+                        if l.upper().startswith('+TO'):
+                            tmp=l[3:0].split()
+                            if len(tmp)>0:
+                                try:
+                                    nextTo=float(tmp[0])
+                                except ValueError:
+                                    nextTo=1
+                                    self.retMessage("## Timeout parameter not recognized, assumung 1 second", [retDataPlain, retDataHtml])
+                                
+                            else:
+                                self.retMessage("## Timeout command requires a parameter (float number)", [retDataPlain, retDataHtml])
                                     
                     else:
                         retDataPlain+=returnMail + "> " + l + "\n"
                         retDataHtml+=returnMail + ">" + l + "<br>"
                         process.stdin.write(l + '\n')
-                        fds=select.select([process.stdout, process.stderr], [], [], 1)
+                        fds=select.select([process.stdout, process.stderr], [], [], nextTo)
+                        nextTo=1.0
                         outData=""
                         for f in fds[0]:
                             fl = fcntl.fcntl(f, fcntl.F_GETFL)
