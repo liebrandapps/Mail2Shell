@@ -27,6 +27,9 @@ import re
 import logging
 from logging.handlers import RotatingFileHandler
 import exceptions
+import hmac
+import hashlib
+import base64
 
 
 
@@ -34,8 +37,8 @@ class Config:
 
     SECTION = "mail2Shell"
     STRING_KEYS=["mailServer", "smtpServer", "username", "password", "magicKey", "trustedSender", "msgFormat", "logFileName", \
-                 "workDir", "path2Shell", "keys", "gpgBinary"]
-    INT_KEYS=["maxFilesize", "keepRunning"]
+                 "workDir", "path2Shell", "keys", "gpgBinary", "hashStore"]
+    INT_KEYS=["maxFilesize", "keepRunning", "hashBufferSize"]
     BOOLEAN_KEYS=["enableLogging", "enableGPG", "allowOnlyGPG", "verifySignature"]
 
     DEFAULTS={"enableLogging" :"yes",
@@ -48,12 +51,16 @@ class Config:
               "keys": "./keys",
               "allowOnlyGPG" : "False",
               "verifySignature" : "False",
-              "gpgBinary" : "/usr/local/bin/gpg"
+              "gpgBinary" : "/usr/local/bin/gpg",
+              "hashBufferSize" : 1024,
+              "hashStore" : "./hashStore.json"
               }
 
     
     def __init__(self, cfgFile):
         self.cfg=RawConfigParser(Config.DEFAULTS)
+        
+        
         _=self.cfg.read(cfgFile)
 
     def hasKey(self, dct, key):
@@ -173,6 +180,12 @@ class Mail2Shell:
                         self.log.error("Key for %s contains no private key" % (config.userName))
                     else:
                         gpgProperlyConfigured=True
+                        db=config.hashStore
+                        if os.path.exists(db) and os.path.isfile(db) and os.stat(db).st_size>0:
+                            with open(db) as fp:
+                                hashes = json.load(fp, cls=DateTimeDecoder)
+                        else:
+                            hashes={}
             else:
                 self.log.error("key Directory is missing (%s) " % (keyDir))
         
@@ -249,7 +262,29 @@ class Mail2Shell:
                         if isEncryptedMail:
                             if part.get_content_type()=="application/octet-stream":
                                 encMsg=part.get_payload(decode=True)
-                                print len(encMsg)
+                                #print len(encMsg)
+                                hsh=base64.b64encode(hmac.new("1234567890", msg=encMsg, digestmod=hashlib.sha256).digest())
+                                if hsh in hashes.keys():
+                                    errMessage="Saw same message again (hash %s)" % (hsh)
+                                    self.log.error(errMessage)
+                                    hasErr=True
+                                    
+                                    break
+                                else:
+                                    now=datetime.datetime.now()
+                                    hashes[hsh]=now
+                                    while len(hashes)>config.hashBufferSize:
+                                        oldestHash=""
+                                        oldest=now
+                                        for k in hashes.keys:
+                                            if hashes[k]<oldest:
+                                                oldestHash=k
+                                                oldest=hashes[k]
+                                        if len(oldestHash)>0:
+                                            del oldestHash[hashes]
+                                    with open(db + "_tmp", 'w') as fp:
+                                        json.dump(hashes, fp, cls=DateTimeEncoder)
+                                    os.rename(db + "_tmp", db)
                                 decMsg = gpg.decrypt(encMsg)
                                 if decMsg.ok:
                                     if decMsg.signature_id is None:

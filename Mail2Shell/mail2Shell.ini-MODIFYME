@@ -4,7 +4,7 @@ username=
 password=
 magicKey=
 trustedSender=
-smtpServer=ß
+smtpServer=
 
 
 enableGPG=True
